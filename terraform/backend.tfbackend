@@ -1,0 +1,5 @@
+subscription_id = "7eba3f5b-9cf5-4cc7-b805-f82c44cd4116"
+resource_group_name = "rg-terraform-files"
+storage_account_name = "sterraformstate"
+container_name = "tfstate"
+key = "cp2"
