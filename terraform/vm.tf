@@ -4,6 +4,9 @@ resource "azurerm_virtual_network" "vnet" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   address_space       = ["10.0.0.0/16"]
+  tags = {
+    "enviroment" = "CP2" 
+  }
 }
 
 
@@ -24,12 +27,18 @@ resource "azurerm_network_interface" "nic" {
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
   }
+  tags = {
+    "enviroment" = "CP2" 
+  }
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "NSG-CP2"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  tags = {
+    "enviroment" = "CP2" 
+  }
 }
 
 
@@ -45,6 +54,7 @@ resource "azurerm_network_security_rule" "ssh" {
   destination_address_prefix  = "*"
   network_security_group_name = azurerm_network_security_group.nsg.name
   resource_group_name         = azurerm_resource_group.rg.name
+  
 }
 
 resource "azurerm_public_ip" "public_ip" {
@@ -52,6 +62,9 @@ resource "azurerm_public_ip" "public_ip" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
+  tags = {
+    "enviroment" = "CP2" 
+  }
 }
 
 resource "azurerm_ssh_public_key" "ssh_key" {
@@ -59,6 +72,9 @@ resource "azurerm_ssh_public_key" "ssh_key" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   public_key          = file(".ssh/id_rsa.pub")
+  tags = {
+    "enviroment" = "CP2" 
+  }
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
@@ -85,5 +101,8 @@ resource "azurerm_linux_virtual_machine" "vm" {
     offer     = "0001-com-ubuntu-server-focal"
     sku       = "20_04-lts"
     version   = "latest"
+  }
+  tags = {
+    "enviroment" = "CP2" 
   }
 }
