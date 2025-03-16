@@ -1,4 +1,4 @@
-resource "azurerm_resource_group" "name" {
+resource "azurerm_resource_group" "rg" {
   name = "rg-cp2"
   location = "West Europe"
 }
