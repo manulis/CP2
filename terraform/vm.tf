@@ -1,4 +1,3 @@
-
 resource "azurerm_virtual_network" "vnet" {
   name                = "VNet-CP2"
   location            = azurerm_resource_group.rg.location
@@ -9,12 +8,21 @@ resource "azurerm_virtual_network" "vnet" {
   }
 }
 
-
 resource "azurerm_subnet" "subnet" {
   name                 = "Subnet-CP2"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_public_ip" "public_ip" {
+  name                = "PublicIP-CP2"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+  tags = {
+    "enviroment" = "CP2" 
+  }
 }
 
 resource "azurerm_network_interface" "nic" {
@@ -26,6 +34,7 @@ resource "azurerm_network_interface" "nic" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.public_ip.id
   }
   tags = {
     "enviroment" = "CP2" 
@@ -41,6 +50,10 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
+resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
+  network_interface_id      = azurerm_network_interface.nic.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
 
 resource "azurerm_network_security_rule" "ssh" {
   name                        = "AllowSSH"
@@ -54,7 +67,6 @@ resource "azurerm_network_security_rule" "ssh" {
   destination_address_prefix  = "*"
   network_security_group_name = azurerm_network_security_group.nsg.name
   resource_group_name         = azurerm_resource_group.rg.name
-  
 }
 
 resource "azurerm_network_security_rule" "http" {
@@ -69,16 +81,6 @@ resource "azurerm_network_security_rule" "http" {
   destination_address_prefix  = "*"
   network_security_group_name = azurerm_network_security_group.nsg.name
   resource_group_name         = azurerm_resource_group.rg.name
-}
-
-resource "azurerm_public_ip" "public_ip" {
-  name                = "PublicIP-CP2"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
-  tags = {
-    "enviroment" = "CP2" 
-  }
 }
 
 resource "azurerm_ssh_public_key" "ssh_key" {
@@ -98,7 +100,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
   size                = "Standard_B1s"
   admin_username      = "adminuser"
   network_interface_ids = [azurerm_network_interface.nic.id]
-
 
   admin_ssh_key {
     username   = "adminuser"
