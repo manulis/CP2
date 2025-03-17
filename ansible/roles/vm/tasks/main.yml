@@ -56,16 +56,6 @@
     group: 1000
     mode: '0755'
 
-- name: Ajustar permisos de la carpeta web
-  become: yes
-  file:
-    path: /var/www/html
-    state: directory
-    owner: 1000
-    group: 1000
-    mode: '0755'
-    recurse: yes
-
 - name: Verificar si el contenedor Nginx existe
   become: yes
   command: podman ps -a --filter "name=nginx_container" --format "{{ '{{' }} .ID {{ '}}' }}"
