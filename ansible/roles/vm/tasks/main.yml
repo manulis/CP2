@@ -71,7 +71,7 @@
   command: podman rm -f nginx_container
   when: nginx_container_id.stdout != ""
 
-- name: Iniciar el contenedor Nginx con `podman_container`
+- name: Iniciar el contenedor Nginx con podman_container
   containers.podman.podman_container:
     name: nginx_container
     image: "{{ acr_login_server }}/nginx:nginximage"
