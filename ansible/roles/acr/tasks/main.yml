@@ -4,6 +4,19 @@
     username: "{{ acr_username }}"
     password: "{{ acr_password }}"
 
+- name: Descargar imagen de Nginx desde DockerHub
+  ansible.builtin.command:
+    cmd: podman pull docker.io/nginx:latest
+  register: pull_result
+  changed_when: "'Downloaded newer image' in pull_result.stdout"
+
+- name: Etiquetar imagen para ACR
+  ansible.builtin.command:
+    cmd: podman tag docker.io/nginx:latest "{{ acr_login_server }}/nginx:nginximage"
+
+- name: Subir imagen Nginx a ACR
+  ansible.builtin.command:
+    cmd: podman push "{{ acr_login_server }}/nginx:nginximage"
 
 - name: Clonar repositorio de Django de ejemplo
   ansible.builtin.git:
@@ -39,10 +52,13 @@
 - name: Etiquetar imagen para ACR
   ansible.builtin.command:
     cmd: podman tag django_app:latest "{{ acr_login_server }}/django_app:new"
+    
 
-- name: Subir imagen a ACR
+- name: Subir imagen app django a ACR
   ansible.builtin.command:
     cmd: podman push "{{ acr_login_server }}/django_app:new"
+
+
 - name: Delete repo
   command: rm -r "../django_app"
 

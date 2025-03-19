@@ -11,7 +11,6 @@
     state: absent
   ignore_errors: yes
 
-
 - name: Añadir repositorio de Podman
   become: yes
   block:
@@ -40,11 +39,15 @@
     name: podman
     state: present
 
-- name: Descargar imagen de Nginx desde DockerHub
-  become: yes
+- name: Login to ACR
+  containers.podman.podman_login:
+    username: "{{ acr_username }}"
+    password: "{{ acr_password }}"
+    registry: "{{ acr_login_server }}"
+
+- name: Descargar imagen de Nginx desde ACR
   containers.podman.podman_image:
-    name: nginx
-    tag: latest
+    name: "{{ acr_login_server }}/nginx:nginximage"
     state: present
 
 - name: Copiar la carpeta web al servidor
@@ -68,9 +71,13 @@
   command: podman rm -f nginx_container
   when: nginx_container_id.stdout != ""
 
-- name: Iniciar el contenedor Nginx
-  become: yes
-  shell: |
-    podman run -d --name nginx_container -p 80:80 -v /var/www/html:/usr/share/nginx/html:ro nginx:latest
-  args:
-    executable: /bin/bash
+- name: Iniciar el contenedor Nginx con `podman_container`
+  containers.podman.podman_container:
+    name: nginx_container
+    image: "{{ acr_login_server }}/nginx:nginximage"
+    state: started
+    detach: true
+    volume:
+      - "/var/www/html:/usr/share/nginx/html:ro"
+    ports:
+      - "8080:80"
