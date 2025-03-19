@@ -3,4 +3,4 @@ terraform/.terraform/
 terraform/.ssh
 ansible/credentials.yml
 .vscode
-
+kubeconfig

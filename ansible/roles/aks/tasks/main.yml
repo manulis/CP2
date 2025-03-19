@@ -1,0 +1,127 @@
+- name: Obtener la última tag de la imagen en ACR
+  command: az acr repository show-tags --name {{ acr_name }} --repository django_app --orderby time_desc --top 1 --output tsv
+  register: acr_latest_tag
+
+- name: Definir la imagen con la última tag
+  set_fact:
+    django_image: "{{ acr_login_server }}/django_app:{{ acr_latest_tag.stdout }}"
+
+- name: Crear namespace para la aplicación Django
+  kubernetes.core.k8s:
+    kubeconfig: "kubeconfig/config"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: django-namespace
+
+- name: Crear un secreto para acceder al ACR
+  kubernetes.core.k8s:
+    kubeconfig: "kubeconfig/config"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: acr-secret
+        namespace: django-namespace
+      data:
+        .dockerconfigjson: "{{ {'auths': {acr_login_server: {'username': acr_username, 'password': acr_password}}} | to_json | b64encode }}"
+      type: kubernetes.io/dockerconfigjson
+
+- name: Crear un Persistent Volume Claim (PVC)
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "kubeconfig/config"
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: django-pvc
+        namespace: django-namespace
+      spec:
+        accessModes:
+        - ReadWriteMany
+        resources:
+          requests:
+            storage: 1Gi
+        storageClassName: azurefile
+
+- name: Desplegar Django en AKS con persistencia y última imagen
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "kubeconfig/config"
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: django-app
+        namespace: django-namespace
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: django-app
+        template:
+          metadata:
+            labels:
+              app: django-app
+          spec:
+            containers:
+            - name: django
+              image: "{{ django_image }}"
+              ports:
+              - containerPort: 8000
+              command:
+              - python3
+              - "manage.py"
+              - "runserver"
+              - "0.0.0.0:8000"
+              env:
+              - name: DJANGO_SETTINGS_MODULE
+                value: "project.settings"
+              volumeMounts:
+              - name: django-storage
+                mountPath: /app/media
+            imagePullSecrets:
+            - name: acr-secret
+            volumes:
+            - name: django-storage
+              persistentVolumeClaim:
+                claimName: django-pvc
+
+- name: Exponer Django con un servicio LoadBalancer
+  kubernetes.core.k8s:
+    kubeconfig: "kubeconfig/config"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: django-service
+        namespace: django-namespace
+      spec:
+        selector:
+          app: django-app
+        ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 8000
+        type: LoadBalancer
+
+- name: Forzar actualización del despliegue en AKS
+  kubernetes.core.k8s:
+    kubeconfig: "kubeconfig/config"
+    state: patched
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: django-app
+        namespace: django-namespace
+      spec:
+        template:
+          metadata:
+            annotations:
+              last-restart: "{{ lookup('pipe', 'date +%s') }}"

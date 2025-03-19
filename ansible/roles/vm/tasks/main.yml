@@ -34,7 +34,7 @@
     update_cache: yes
   changed_when: false
 
-- name: Install Podman
+- name: Instalar Podman
   become: yes
   apt:
     name: podman

@@ -1,0 +1,48 @@
+- name: Login en Azure Container Registry
+  containers.podman.podman_login:
+    registry: "{{ acr_login_server }}"
+    username: "{{ acr_username }}"
+    password: "{{ acr_password }}"
+
+
+- name: Clonar repositorio de Django de ejemplo
+  ansible.builtin.git:
+    repo: "https://github.com/manulis/TheCloudOps-API.git"
+    dest: "../django_app"
+    version: master
+    force: yes
+
+- name: Crear el Dockerfile en la carpeta de la app Django
+  copy:
+    dest: "../django_app/Dockerfile"
+    content: |
+      FROM python:3.11
+      WORKDIR /app
+      COPY . /app
+      RUN pip install --no-cache-dir -r requirements.txt
+      EXPOSE 8000
+      CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
+
+- name: Eliminar imagen vieja de Django (local)
+  containers.podman.podman_image:
+    name: django_app
+    state: absent
+  ignore_errors: yes
+
+- name: Construir imagen Docker de Django
+  containers.podman.podman_image:
+    name: django_app
+    path: "../django_app"
+    tag: latest
+    state: present
+
+- name: Etiquetar imagen para ACR
+  ansible.builtin.command:
+    cmd: podman tag django_app:latest "{{ acr_login_server }}/django_app:new"
+
+- name: Subir imagen a ACR
+  ansible.builtin.command:
+    cmd: podman push "{{ acr_login_server }}/django_app:new"
+- name: Delete repo
+  command: rm -r "../django_app"
+
