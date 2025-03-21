@@ -58,19 +58,7 @@
     owner: 1000
     group: 1000
     mode: '0755'
-
-- name: Verificar si el contenedor Nginx existe
-  become: yes
-  command: podman ps -a --filter "name=nginx_container" --format "{{ '{{' }} .ID {{ '}}' }}"
-  register: nginx_container_id
-  changed_when: false
-  ignore_errors: yes
-
-- name: Eliminar el contenedor Nginx si existe
-  become: yes
-  command: podman rm -f nginx_container
-  when: nginx_container_id.stdout != ""
-
+  
 - name: Iniciar el contenedor Nginx con podman_container
   containers.podman.podman_container:
     name: nginx_container

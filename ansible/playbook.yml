@@ -1,26 +1,26 @@
-- name: Setup ACR and images 
+- name: Configurar ACR e imágenes
   hosts: localhost
   vars_files: 
     - credentials.yml
   tasks:
-    - name: Pull, build, tag and push images to ACR
+    - name: Extraer, construir, etiquetar y enviar imágenes a ACR
       include_role:
         name: acr
 
-- name: Setup Webserver
+- name: Configurar servidor web
   hosts: vm
   vars_files: 
     - credentials.yml
   tasks:
-    - name: Configure VM with Podman and deploy web server
+    - name: Configurar VM con Podman y desplegar servidor web
       include_role:
         name: vm
 
-- name: Setup AKS
+- name: Configurar AKS
   hosts: localhost
   vars_files: 
     - credentials.yml
   tasks:
-    - name: Deploy app to AKS
+    - name: Desplegar aplicación en AKS
       include_role:
         name: aks
